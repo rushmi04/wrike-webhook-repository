@@ -1,20 +1,35 @@
-const express = require("express");
-const app = express();
-
-app.use(express.json());
-
-// Webhook endpoint Wrike will call
-app.post("/wrike-webhook", (req, res) => {
+app.post("/wrike-webhook", async (req, res) => {
     console.log("🔔 Received webhook from Wrike:");
-    console.log(JSON.stringify(req.body, null, 2));
+    const payload = req.body;
+
+    const message = {
+        text: "🔔 *Wrike Update Received!*",
+        card: {
+            theme: "modern",
+            title: "WrikePulseBot – Realtime Update",
+            description: "Your Wrike workspace just triggered an event.",
+            sections: [
+                {
+                    title: "Event Payload",
+                    elements: [
+                        { type: "text", text: "```" + JSON.stringify(payload, null, 2) + "```" }
+                    ]
+                }
+            ]
+        }
+    };
+
+    try {
+        await fetch("https://cliq.zoho.com/api/v2/bots/wrikepulsebot0/incoming", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(message)
+        });
+
+        console.log("📨 Sent successfully to WRIKE PULSE BOT");
+    } catch (error) {
+        console.error("❌ Failed to send to bot:", error);
+    }
+
     res.status(200).send("OK");
 });
-
-// Home route (for testing)
-app.get("/", (req, res) => {
-    res.send("Wrike Webhook Server Running ✔");
-});
-
-// Render uses PORT environment variable
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log("🚀 Server running on port", port));
